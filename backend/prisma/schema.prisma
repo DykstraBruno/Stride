@@ -1,0 +1,34 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Task {
+  id               String    @id @default(uuid())
+  title            String
+  description      String?
+  period           String    // daily | weekly | monthly
+  priority         String    // low | medium | high | urgent
+  timeLimitMinutes Int
+  scheduledAt      DateTime?
+  dueDate          DateTime
+  completedAt      DateTime?
+  status           String    @default("pending")
+  category         String
+  isRecurring      Boolean   @default(false)
+  recurringConfig  String?   // JSON string
+  tags             String    @default("[]") // JSON array string
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([period])
+  @@index([status])
+  @@index([dueDate])
+}
