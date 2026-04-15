@@ -2,6 +2,28 @@
 
 Gerenciador de agenda pessoal com visualizações diária, semanal e mensal, suporte a tarefas recorrentes e assistente de IA integrado.
 
+![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178c6?logo=typescript&logoColor=white)
+![React](https://img.shields.io/badge/React-18-61dafb?logo=react&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js&logoColor=white)
+![Tests](https://img.shields.io/badge/testes-52%20passing-brightgreen)
+![Coverage](https://img.shields.io/badge/coverage%20(domain%2Fuse--cases)-97%25-brightgreen)
+
+---
+
+## Screenshots
+
+> Visão diária com gráfico de distribuição de horas por categoria
+
+![Daily View](docs/screenshots/daily.png)
+
+> Visão mensal com dots de prioridade por dia
+
+![Monthly View](docs/screenshots/monthly.png)
+
+> Assistente de IA com streaming de resposta
+
+![AI Assistant](docs/screenshots/ai.png)
+
 ---
 
 ## Funcionalidades
@@ -101,6 +123,35 @@ Dentro de `backend/`:
 |--------------------------|----------------------------------------|
 | `npm run db:studio`      | Abre o Prisma Studio (GUI do banco)    |
 | `npm run db:push --force-reset` | Reseta o banco (apaga todos os dados) |
+
+---
+
+## Deploy
+
+### Frontend — Vercel (recomendado)
+
+1. Importe o repositório no [vercel.com](https://vercel.com)
+2. Configure o **Root Directory** como `frontend`
+3. Adicione a variável de ambiente:
+   ```
+   VITE_API_URL=https://sua-api.railway.app
+   ```
+4. Deploy automático a cada push na `main`
+
+### Backend — Railway
+
+1. Crie um novo projeto no [railway.app](https://railway.app) e conecte o repositório
+2. Configure o **Root Directory** como `backend`
+3. Adicione as variáveis de ambiente:
+   ```
+   DATABASE_URL=file:./prisma/dev.db
+   GROQ_API_KEY=gsk_...
+   GROQ_MODEL=llama-3.1-8b-instant
+   PORT=3001
+   ```
+4. Adicione o comando de start: `npm run db:push && npm start`
+
+> **Nota sobre SQLite em produção:** o SQLite é persistido no disco do container. Para ambientes com redeploys frequentes, considere migrar para PostgreSQL alterando o `provider` no `schema.prisma` e ajustando o `DATABASE_URL`.
 
 ---
 
