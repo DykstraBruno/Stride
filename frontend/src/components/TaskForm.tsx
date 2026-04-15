@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Sparkles } from 'lucide-react'
 import { Task, CreateTaskPayload, TaskPeriod, TaskPriority, TaskCategory } from '../types/task'
 import { useCreateTask, useUpdateTask } from '../hooks/useTasks'
@@ -83,7 +84,7 @@ export function TaskForm({ task, defaultPeriod = 'daily', onClose }: TaskFormPro
 
   const isPending = createTask.isPending || updateTask.isPending
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center
                     p-0 sm:p-4 backdrop-blur-sm animate-fade-in"
          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
@@ -310,6 +311,7 @@ export function TaskForm({ task, defaultPeriod = 'daily', onClose }: TaskFormPro
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
