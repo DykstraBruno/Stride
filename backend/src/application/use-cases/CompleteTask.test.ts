@@ -16,13 +16,14 @@ const makeTask = (overrides = {}) =>
   })
 
 const makeMockRepo = (task: Task | null = null): ITaskRepository => ({
-  findById: vi.fn(async () => task),
-  findAll: vi.fn(),
-  findByPeriod: vi.fn(),
-  save: vi.fn(),
-  update: vi.fn(async (t: Task) => t),
-  delete: vi.fn(),
-  existsById: vi.fn(),
+  findById:         vi.fn(async () => task),
+  findAll:          vi.fn(),
+  findByPeriod:     vi.fn(),
+  save:             vi.fn(),
+  update:           vi.fn(async (t: Task) => t),
+  delete:           vi.fn(),
+  deleteByParentId: vi.fn(),
+  existsById:       vi.fn(),
 })
 
 describe('CompleteTask use case', () => {

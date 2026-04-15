@@ -4,13 +4,14 @@ import { ITaskRepository } from '../../domain/repositories/ITaskRepository'
 import { Task } from '../../domain/entities/Task'
 
 const makeMockRepo = (): ITaskRepository => ({
-  findById: vi.fn(),
-  findAll: vi.fn(),
-  findByPeriod: vi.fn(),
-  save: vi.fn(async (task: Task) => task),
-  update: vi.fn(),
-  delete: vi.fn(),
-  existsById: vi.fn(),
+  findById:         vi.fn(),
+  findAll:          vi.fn(),
+  findByPeriod:     vi.fn(),
+  save:             vi.fn(async (task: Task) => task),
+  update:           vi.fn(),
+  delete:           vi.fn(),
+  deleteByParentId: vi.fn(),
+  existsById:       vi.fn(),
 })
 
 const makeInput = (overrides: Partial<CreateTaskInput> = {}): CreateTaskInput => ({
