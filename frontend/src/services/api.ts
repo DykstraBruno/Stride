@@ -10,7 +10,12 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: 'Unknown error' }))
-    throw new Error(body.error ?? `HTTP ${res.status}`)
+    const detail = body.details
+      ? ': ' + (body.details as Array<{ path: unknown[]; message: string }>)
+          .map((d) => `${d.path.join('.')} — ${d.message}`)
+          .join('; ')
+      : ''
+    throw new Error((body.error ?? `HTTP ${res.status}`) + detail)
   }
 
   if (res.status === 204) return undefined as T
@@ -67,6 +72,60 @@ export const aiApi = {
       method: 'POST',
       body: JSON.stringify({ message, includeContext }),
     }),
+
+  /** Streaming chat via fetch + SSE. Calls onChunk for each text piece, returns full text. */
+  chatStream: async (
+    message: string,
+    onChunk: (chunk: string) => void,
+    includeContext = true,
+  ): Promise<string> => {
+    const res = await fetch('/api/ai/chat/stream', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ message, includeContext }),
+    })
+
+    if (!res.ok || !res.body) {
+      const body = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+      throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`)
+    }
+
+    const reader  = res.body.getReader()
+    const decoder = new TextDecoder()
+    let   full    = ''
+    let   buf     = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buf += decoder.decode(value, { stream: true })
+      const lines = buf.split('\n')
+      buf = lines.pop() ?? ''   // keep incomplete last line in buffer
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue
+        try {
+          const { type, payload } = JSON.parse(line.slice(6)) as {
+            type: 'chunk' | 'done' | 'error'
+            payload: unknown
+          }
+          if (type === 'chunk') {
+            full += payload as string
+            onChunk(payload as string)
+          } else if (type === 'error') {
+            throw new Error(payload as string)
+          } else if (type === 'done') {
+            return full
+          }
+        } catch (e) {
+          if (e instanceof SyntaxError) continue
+          throw e
+        }
+      }
+    }
+    return full
+  },
 
   analyze: (date?: string) =>
     request<AIAnalysis>('/ai/analyze', {

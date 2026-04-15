@@ -8,7 +8,7 @@ export interface CreateTaskInput {
   priority: TaskPriority
   timeLimitMinutes: number
   scheduledAt?: Date
-  dueDate: Date
+  dueDate?: Date
   category: TaskCategory
   isRecurring?: boolean
   recurringConfig?: RecurringConfig
@@ -19,6 +19,9 @@ export class CreateTask {
   constructor(private readonly taskRepository: ITaskRepository) {}
 
   async execute(input: CreateTaskInput): Promise<Task> {
+    const base = input.scheduledAt ?? new Date()
+    const dueDate = input.dueDate ?? new Date(base.getTime() + input.timeLimitMinutes * 60_000)
+
     const task = new Task({
       title: input.title,
       description: input.description,
@@ -26,7 +29,7 @@ export class CreateTask {
       priority: input.priority,
       timeLimitMinutes: input.timeLimitMinutes,
       scheduledAt: input.scheduledAt,
-      dueDate: input.dueDate,
+      dueDate,
       category: input.category,
       isRecurring: input.isRecurring,
       recurringConfig: input.recurringConfig,

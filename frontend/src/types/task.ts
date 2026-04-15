@@ -44,7 +44,6 @@ export interface CreateTaskPayload {
   priority: TaskPriority
   timeLimitMinutes: number
   scheduledAt?: string
-  dueDate: string
   category: TaskCategory
   isRecurring?: boolean
   recurringConfig?: RecurringConfig

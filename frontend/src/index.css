@@ -1,63 +1,182 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ── Semantic color tokens ─────────────────────────────── */
+:root {
+  --c-bg:      #f2f3f5;
+  --c-sidebar: #e3e5e8;
+  --c-card:    #ffffff;
+  --c-border:  #d4d7dc;
+  --c-hover:   #e0e1e5;
+  --c-active:  #c3c6ce;
+  --c-text:    #060607;
+  --c-soft:    #4e5058;
+  --c-muted:   #80848e;
+}
+
+.dark {
+  --c-bg:      #1e1f22;
+  --c-sidebar: #2b2d31;
+  --c-card:    #313338;
+  --c-border:  #3f4147;
+  --c-hover:   #35373c;
+  --c-active:  #42444a;
+  --c-text:    #f2f3f5;
+  --c-soft:    #b5bac1;
+  --c-muted:   #80848e;
+}
+
 @layer base {
-  * {
-    box-sizing: border-box;
-  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; height: 100%; }
 
   body {
-    @apply bg-gray-50 text-gray-900 font-sans antialiased;
+    @apply font-sans antialiased;
+    background-color: var(--c-bg);
+    color: var(--c-text);
+    height: 100%;
   }
 
-  ::-webkit-scrollbar {
-    width: 6px;
-  }
+  #root { height: 100%; }
 
-  ::-webkit-scrollbar-track {
-    @apply bg-gray-100;
-  }
-
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 rounded-full;
+    background: var(--c-border);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--c-muted);
   }
 }
 
 @layer components {
+
+  /* ── Buttons ── */
   .btn-primary {
-    @apply bg-stride-600 text-white px-4 py-2 rounded-lg font-medium
-           hover:bg-stride-700 active:bg-stride-800
-           transition-colors duration-150 focus:outline-none
-           focus:ring-2 focus:ring-stride-500 focus:ring-offset-2
-           disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2
+           bg-primary-500 text-white px-4 py-2 rounded-lg font-medium text-sm
+           hover:bg-primary-600 active:scale-[0.98]
+           transition-all duration-150 focus:outline-none
+           focus:ring-2 focus:ring-primary-500 focus:ring-offset-2
+           disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100;
+    focus-ring-offset-color: var(--c-sidebar);
   }
 
   .btn-secondary {
-    @apply bg-white text-gray-700 px-4 py-2 rounded-lg font-medium border border-gray-200
-           hover:bg-gray-50 active:bg-gray-100
-           transition-colors duration-150 focus:outline-none
-           focus:ring-2 focus:ring-gray-200 focus:ring-offset-2
-           disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2
+           px-4 py-2 rounded-lg font-medium text-sm
+           border transition-all duration-150 focus:outline-none
+           active:scale-[0.98]
+           disabled:opacity-40 disabled:cursor-not-allowed;
+    background-color: var(--c-hover);
+    color: var(--c-text);
+    border-color: var(--c-border);
   }
+  .btn-secondary:hover { background-color: var(--c-active); }
 
   .btn-ghost {
-    @apply text-gray-600 px-3 py-1.5 rounded-lg font-medium
-           hover:bg-gray-100 active:bg-gray-200
-           transition-colors duration-150 focus:outline-none;
+    @apply inline-flex items-center justify-center gap-1.5
+           px-3 py-1.5 rounded-lg font-medium text-sm
+           active:scale-[0.97] transition-all duration-150 focus:outline-none;
+    color: var(--c-soft);
+  }
+  .btn-ghost:hover {
+    background-color: var(--c-hover);
+    color: var(--c-text);
   }
 
+  .btn-icon {
+    @apply inline-flex items-center justify-center
+           w-8 h-8 rounded-lg
+           transition-all duration-150 focus:outline-none;
+    color: var(--c-soft);
+  }
+  .btn-icon:hover {
+    background-color: var(--c-hover);
+    color: var(--c-text);
+  }
+
+  /* ── Cards ── */
   .card {
-    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-4;
+    @apply rounded-lg p-4;
+    background-color: var(--c-card);
+    border: 1px solid var(--c-border);
   }
 
+  .card-hover {
+    @apply card transition-all duration-150 cursor-pointer;
+  }
+  .card-hover:hover { background-color: var(--c-hover); }
+
+  /* ── Inputs ── */
   .input {
-    @apply w-full px-3 py-2 border border-gray-200 rounded-lg text-sm
-           focus:outline-none focus:ring-2 focus:ring-stride-500 focus:border-transparent
-           placeholder:text-gray-400;
+    @apply w-full px-3 py-2 text-sm rounded-lg
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
+           transition-colors duration-150;
+    background-color: var(--c-bg);
+    border: 1px solid var(--c-border);
+    color: var(--c-text);
+  }
+  .input::placeholder { color: var(--c-muted); }
+
+  /* ── Badges ── */
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium;
+    background-color: var(--c-hover);
+    color: var(--c-soft);
+    border: 1px solid var(--c-border);
   }
 
-  .badge {
-    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+  /* ── Section header ── */
+  .section-title {
+    @apply text-xs font-semibold uppercase tracking-widest;
+    color: var(--c-muted);
   }
+
+  /* ── Skeleton ── */
+  .skeleton {
+    @apply rounded-lg animate-shimmer;
+    background-size: 200% 100%;
+    background-image: linear-gradient(90deg, var(--c-hover) 0%, var(--c-active) 50%, var(--c-hover) 100%);
+  }
+
+  /* ── Nav item (sidebar) ── */
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium
+           transition-colors duration-100 w-full;
+    color: var(--c-soft);
+  }
+  .nav-item:hover {
+    background-color: var(--c-hover);
+    color: var(--c-text);
+  }
+  .nav-item.active {
+    background-color: rgba(88, 101, 242, 0.15);
+    color: #5865f2;
+  }
+
+  /* ── Priority colours ── */
+  .priority-urgent { @apply bg-rose-500/15 text-rose-500 border border-rose-500/30; }
+  .priority-high   { @apply bg-orange-500/15 text-orange-500 border border-orange-500/30; }
+  .priority-medium { @apply bg-primary-500/15 text-primary-500 border border-primary-500/30; }
+  .priority-low    {
+    border: 1px solid var(--c-border);
+    color: var(--c-muted);
+    background-color: var(--c-hover);
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent;
+  }
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar { display: none; }
 }

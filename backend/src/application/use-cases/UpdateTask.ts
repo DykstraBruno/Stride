@@ -32,7 +32,13 @@ export class UpdateTask {
     if (input.priority !== undefined) task.priority = input.priority
     if (input.timeLimitMinutes !== undefined) task.timeLimitMinutes = input.timeLimitMinutes
     if (input.scheduledAt !== undefined) task.scheduledAt = input.scheduledAt
-    if (input.dueDate !== undefined) task.dueDate = input.dueDate
+    if (input.dueDate !== undefined) {
+      task.dueDate = input.dueDate
+    } else if (input.scheduledAt !== undefined || input.timeLimitMinutes !== undefined) {
+      // Recalculate dueDate when scheduling info changes without an explicit dueDate
+      const base = task.scheduledAt ?? new Date()
+      task.dueDate = new Date(base.getTime() + task.timeLimitMinutes * 60_000)
+    }
     if (input.category !== undefined) task.category = input.category
     if (input.isRecurring !== undefined) task.isRecurring = input.isRecurring
     if (input.recurringConfig !== undefined) task.recurringConfig = input.recurringConfig

@@ -1,4 +1,4 @@
-import { CheckCircle2, Circle, Clock } from 'lucide-react'
+import { CheckCircle2, Circle, AlertCircle, TrendingUp } from 'lucide-react'
 import { Task, TaskStatus } from '../types/task'
 
 interface ChecklistProgressProps {
@@ -6,64 +6,91 @@ interface ChecklistProgressProps {
 }
 
 export function ChecklistProgress({ tasks }: ChecklistProgressProps) {
-  const counts = tasks.reduce(
-    (acc, task) => {
-      acc[task.status] = (acc[task.status] ?? 0) + 1
-      return acc
-    },
-    {} as Record<TaskStatus, number>,
-  )
+  if (tasks.length === 0) return null
 
-  const total = tasks.length
-  const completed = counts['completed'] ?? 0
+  const counts = tasks.reduce((acc, t) => {
+    acc[t.status] = (acc[t.status] ?? 0) + 1
+    return acc
+  }, {} as Record<TaskStatus, number>)
+
+  const total      = tasks.length
+  const completed  = counts['completed']   ?? 0
   const inProgress = counts['in_progress'] ?? 0
-  const overdue = counts['overdue'] ?? 0
-  const pending = counts['pending'] ?? 0
-  const skipped = counts['skipped'] ?? 0
+  const overdue    = counts['overdue']     ?? 0
+  const pending    = counts['pending']     ?? 0
+  const skipped    = counts['skipped']     ?? 0
+  const pct        = Math.round((completed / total) * 100)
 
-  const pct = total > 0 ? Math.round((completed / total) * 100) : 0
+  const ringColor = pct === 100 ? '#10b981'
+                  : pct >= 60   ? '#5865f2'
+                  : pct >= 30   ? '#f59e0b'
+                  : '#ef4444'
 
-  if (total === 0) return null
+  const circumference = 2 * Math.PI * 26
+  const strokeDash    = circumference - (pct / 100) * circumference
 
   return (
     <div className="card">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-gray-700">Progresso do dia</h3>
-        <span className="text-lg font-bold text-stride-600">{pct}%</span>
-      </div>
+      <div className="flex items-center gap-4">
 
-      {/* Progress bar */}
-      <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-3">
-        <div
-          className="h-full bg-gradient-to-r from-stride-500 to-stride-400 rounded-full transition-all duration-500"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
+        {/* Circular progress */}
+        <div className="relative flex-shrink-0 w-16 h-16">
+          <svg className="w-16 h-16 -rotate-90" viewBox="0 0 60 60">
+            <circle cx="30" cy="30" r="26" fill="none"
+              stroke="var(--c-hover)" strokeWidth="5" />
+            <circle cx="30" cy="30" r="26" fill="none"
+              stroke={ringColor} strokeWidth="5"
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeDash}
+              style={{ transition: 'stroke-dashoffset 0.8s cubic-bezier(0.16,1,0.3,1)' }}
+            />
+          </svg>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-sm font-bold" style={{ color: 'var(--c-text)' }}>{pct}%</span>
+          </div>
+        </div>
 
-      {/* Breakdown */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-        <Stat icon={<CheckCircle2 size={12} className="text-green-500" />} label="Concluídas" count={completed} color="text-green-700" />
-        <Stat icon={<Clock size={12} className="text-blue-500" />} label="Em andamento" count={inProgress} color="text-blue-700" />
-        <Stat icon={<Circle size={12} className="text-gray-400" />} label="Pendentes" count={pending + skipped} color="text-gray-600" />
-        {overdue > 0 && (
-          <Stat icon={<Clock size={12} className="text-red-500" />} label="Atrasadas" count={overdue} color="text-red-700" />
-        )}
+        {/* Stats */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 mb-2">
+            <TrendingUp size={13} className="text-primary-500" />
+            <h3 className="text-xs font-semibold" style={{ color: 'var(--c-soft)' }}>
+              Progresso do dia
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+            <StatRow icon={<CheckCircle2 size={11} className="text-emerald-500" />}
+              label="Concluídas" count={completed} color="#10b981" />
+            <StatRow icon={<Circle size={11} className="text-primary-500" />}
+              label="Em andamento" count={inProgress} color="#5865f2" />
+            <StatRow icon={<Circle size={11} style={{ color: 'var(--c-muted)' }} />}
+              label="Pendentes" count={pending + skipped} color="var(--c-soft)" />
+            {overdue > 0 && (
+              <StatRow icon={<AlertCircle size={11} className="text-rose-500" />}
+                label="Atrasadas" count={overdue} color="#ef4444" />
+            )}
+          </div>
+        </div>
       </div>
 
       {pct === 100 && (
-        <div className="mt-3 text-center text-sm text-green-600 bg-green-50 rounded-lg py-2 font-medium">
-          Parabéns! Todas as tarefas concluídas!
+        <div className="mt-3 flex items-center justify-center gap-2
+                        bg-emerald-500/10 border border-emerald-500/20
+                        rounded-lg py-2.5 px-3">
+          <span className="text-lg">🎉</span>
+          <span className="text-sm font-semibold text-emerald-500">
+            Parabéns! Todas as tarefas concluídas!
+          </span>
         </div>
       )}
     </div>
   )
 }
 
-function Stat({
-  icon,
-  label,
-  count,
-  color,
+function StatRow({
+  icon, label, count, color,
 }: {
   icon: React.ReactNode
   label: string
@@ -73,8 +100,8 @@ function Stat({
   return (
     <div className="flex items-center gap-1.5">
       {icon}
-      <span className={`font-semibold ${color}`}>{count}</span>
-      <span className="text-gray-400">{label}</span>
+      <span className="text-xs font-semibold" style={{ color }}>{count}</span>
+      <span className="text-xs truncate" style={{ color: 'var(--c-muted)' }}>{label}</span>
     </div>
   )
 }

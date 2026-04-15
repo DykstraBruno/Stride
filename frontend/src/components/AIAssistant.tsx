@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Bot, Sparkles, X, BarChart2, RefreshCw } from 'lucide-react'
+import { Send, Bot, Sparkles, X, BarChart2, RefreshCw, Zap } from 'lucide-react'
 import { aiApi, AIAnalysis } from '../services/api'
 
 interface Message {
@@ -12,51 +12,71 @@ interface AIAssistantProps {
   onClose: () => void
 }
 
+const QUICK_PROMPTS = [
+  'Organize meu dia',
+  'Preciso de uma pausa',
+  'Estou procrastinando',
+  'Me lembre de comer',
+]
+
 export function AIAssistant({ onClose }: AIAssistantProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'ai',
       content:
-        'Olá! Sou o Stride AI. Posso ajudar você a organizar suas tarefas, sugerir horários, lembrar de pausas para refeições e muito mais. O que você precisa?',
+        'Olá! Sou o Stride AI. Posso ajudar você a organizar tarefas, sugerir horários, lembrar de pausas e muito mais. O que você precisa?',
       timestamp: new Date(),
     },
   ])
-  const [input, setInput] = useState('')
+  const [input, setInput]         = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [analysis, setAnalysis] = useState<AIAnalysis | null>(null)
+  const [analysis, setAnalysis]   = useState<AIAnalysis | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [activeTab, setActiveTab] = useState<'chat' | 'analysis'>('chat')
   const bottomRef = useRef<HTMLDivElement>(null)
+  const inputRef  = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading) return
+  const sendMessage = async (text?: string) => {
+    const msg = (text ?? input).trim()
+    if (!msg || isLoading) return
 
-    const userMessage = input.trim()
     setInput('')
-    setMessages((prev) => [
-      ...prev,
-      { role: 'user', content: userMessage, timestamp: new Date() },
-    ])
+    setMessages((prev) => [...prev, { role: 'user', content: msg, timestamp: new Date() }])
     setIsLoading(true)
 
+    // Add empty AI message that will be filled progressively
+    const aiMsgId = Date.now()
+    setMessages((prev) => [
+      ...prev,
+      { role: 'ai', content: '', timestamp: new Date(), id: aiMsgId } as Message & { id: number },
+    ])
+
     try {
-      const { reply } = await aiApi.chat(userMessage)
-      setMessages((prev) => [...prev, { role: 'ai', content: reply, timestamp: new Date() }])
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'ai',
-          content: 'Desculpe, houve um erro. Verifique se a ANTHROPIC_API_KEY está configurada.',
-          timestamp: new Date(),
-        },
-      ])
+      await aiApi.chatStream(msg, (chunk) => {
+        setMessages((prev) =>
+          prev.map((m) =>
+            (m as Message & { id?: number }).id === aiMsgId
+              ? { ...m, content: m.content + chunk }
+              : m,
+          ),
+        )
+      })
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err)
+      setMessages((prev) =>
+        prev.map((m) =>
+          (m as Message & { id?: number }).id === aiMsgId
+            ? { ...m, content: `Erro: ${detail}` }
+            : m,
+        ),
+      )
     } finally {
       setIsLoading(false)
+      inputRef.current?.focus()
     }
   }
 
@@ -67,110 +87,117 @@ export function AIAssistant({ onClose }: AIAssistantProps) {
       setAnalysis(result)
       setActiveTab('analysis')
     } catch {
-      alert('Erro ao analisar agenda. Verifique a configuração da API.')
+      alert('Erro ao analisar agenda. Verifique sua conexão e a chave GROQ_API_KEY no .env.')
     } finally {
       setIsAnalyzing(false)
     }
   }
 
-  const loadColor = (pct: number) =>
-    pct > 80 ? 'text-red-600 bg-red-50' : pct > 60 ? 'text-orange-600 bg-orange-50' : 'text-green-600 bg-green-50'
+  const loadGradient = (pct: number) =>
+    pct > 80 ? 'from-rose-500 to-red-600'
+  : pct > 60 ? 'from-amber-400 to-orange-500'
+  : 'from-emerald-400 to-teal-500'
+
+  const loadLabel = (pct: number) =>
+    pct > 80 ? 'Dia muito carregado!'
+  : pct > 60 ? 'Carga moderada'
+  : 'Bem equilibrado'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 animate-fade-in">
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-md h-[85vh] sm:h-[600px] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-100 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-stride-500 to-stride-700 rounded-full flex items-center justify-center">
-              <Bot size={16} className="text-white" />
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center
+                    p-0 sm:p-4 backdrop-blur-sm animate-fade-in"
+         style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+      <div className="rounded-t-2xl sm:rounded-xl shadow-2xl
+                      w-full sm:max-w-md h-[88vh] sm:h-[640px]
+                      flex flex-col animate-slide-up overflow-hidden"
+           style={{ backgroundColor: 'var(--c-card)', border: '1px solid var(--c-border)' }}>
+
+        {/* ── Header ── */}
+        <div className="flex items-center justify-between px-4 py-3.5 flex-shrink-0"
+             style={{ borderBottom: '1px solid var(--c-border)' }}>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700
+                            flex items-center justify-center shadow-glow-sm">
+              <Bot size={17} className="text-white" />
             </div>
             <div>
-              <h2 className="font-semibold text-sm text-gray-900">Stride AI</h2>
-              <p className="text-xs text-gray-400">Assistente de produtividade</p>
+              <h2 className="font-semibold text-sm text-surface-900 dark:text-surface-100">
+                Stride AI
+              </h2>
+              <p className="text-xs text-surface-400 dark:text-surface-500">
+                Assistente de produtividade
+              </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={analyzeSchedule}
-              disabled={isAnalyzing}
-              title="Analisar agenda de hoje"
-              className="btn-ghost p-1.5 text-stride-600"
-            >
-              {isAnalyzing ? (
-                <RefreshCw size={16} className="animate-spin" />
-              ) : (
-                <BarChart2 size={16} />
-              )}
+          <div className="flex items-center gap-1">
+            <button onClick={analyzeSchedule} disabled={isAnalyzing}
+              title="Analisar agenda" className="btn-icon">
+              {isAnalyzing
+                ? <RefreshCw size={16} className="animate-spin text-primary-500" />
+                : <BarChart2 size={16} />}
             </button>
-            <button onClick={onClose} className="btn-ghost p-1">
+            <button onClick={onClose} className="btn-icon">
               <X size={18} />
             </button>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-gray-100 flex-shrink-0">
-          <button
-            onClick={() => setActiveTab('chat')}
-            className={`flex-1 py-2 text-sm font-medium transition-colors ${
-              activeTab === 'chat'
-                ? 'text-stride-600 border-b-2 border-stride-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Chat
-          </button>
-          <button
-            onClick={() => setActiveTab('analysis')}
-            className={`flex-1 py-2 text-sm font-medium transition-colors ${
-              activeTab === 'analysis'
-                ? 'text-stride-600 border-b-2 border-stride-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Análise
-          </button>
+        {/* ── Tabs ── */}
+        <div className="flex flex-shrink-0" style={{ borderBottom: '1px solid var(--c-border)' }}>
+          {(['chat', 'analysis'] as const).map((tab) => (
+            <button key={tab} onClick={() => setActiveTab(tab)}
+              className={`flex-1 py-2.5 text-xs font-semibold uppercase tracking-wide
+                          transition-colors ${
+                activeTab === tab
+                  ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-500'
+                  : 'text-surface-400 dark:text-surface-500 hover:text-surface-600 dark:hover:text-surface-400'
+              }`}>
+              {tab === 'chat' ? 'Chat' : 'Análise'}
+            </button>
+          ))}
         </div>
 
-        {/* Chat tab */}
+        {/* ── Chat tab ── */}
         {activeTab === 'chat' && (
           <>
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
               {messages.map((msg, i) => (
-                <div
-                  key={i}
-                  className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
-                >
+                <div key={i}
+                  className={`flex gap-2.5 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                   {msg.role === 'ai' && (
-                    <div className="w-6 h-6 bg-stride-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Bot size={12} className="text-stride-700" />
+                    <div className="w-7 h-7 rounded-xl bg-primary-100 dark:bg-primary-900/40
+                                    flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Zap size={13} className="text-primary-600 dark:text-primary-400" />
                     </div>
                   )}
-                  <div
-                    className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
-                      msg.role === 'user'
-                        ? 'bg-stride-600 text-white rounded-tr-sm'
-                        : 'bg-gray-100 text-gray-800 rounded-tl-sm'
-                    }`}
-                  >
+                  <div className={`max-w-[80%] rounded-xl px-3.5 py-2.5 text-sm
+                                   leading-relaxed whitespace-pre-wrap ${
+                    msg.role === 'user'
+                      ? 'bg-primary-500 text-white rounded-tr-sm'
+                      : 'rounded-tl-sm'
+                  }`}
+                       style={msg.role === 'ai' ? {
+                         backgroundColor: 'var(--c-hover)',
+                         color: 'var(--c-text)',
+                       } : {}}>
                     {msg.content}
                   </div>
                 </div>
               ))}
+
               {isLoading && (
-                <div className="flex gap-2">
-                  <div className="w-6 h-6 bg-stride-100 rounded-full flex items-center justify-center">
-                    <Bot size={12} className="text-stride-700" />
+                <div className="flex gap-2.5">
+                  <div className="w-7 h-7 rounded-xl bg-primary-100 dark:bg-primary-900/40
+                                  flex items-center justify-center">
+                    <Zap size={13} className="text-primary-500" />
                   </div>
-                  <div className="bg-gray-100 rounded-2xl rounded-tl-sm px-3 py-2">
-                    <div className="flex gap-1">
+                  <div className="rounded-xl rounded-tl-sm px-4 py-3"
+                       style={{ backgroundColor: 'var(--c-hover)' }}>
+                    <div className="flex gap-1.5 items-center">
                       {[0, 1, 2].map((i) => (
-                        <div
-                          key={i}
-                          className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
-                          style={{ animationDelay: `${i * 150}ms` }}
-                        />
+                        <div key={i}
+                          className="w-1.5 h-1.5 bg-surface-400 dark:bg-surface-500 rounded-full animate-bounce"
+                          style={{ animationDelay: `${i * 150}ms` }} />
                       ))}
                     </div>
                   </div>
@@ -180,94 +207,107 @@ export function AIAssistant({ onClose }: AIAssistantProps) {
             </div>
 
             {/* Quick prompts */}
-            <div className="px-4 pb-2 flex gap-2 overflow-x-auto flex-shrink-0">
-              {[
-                'Organize meu dia',
-                'Preciso de uma pausa',
-                'Estou procrastinando',
-                'Me lembre de comer',
-              ].map((prompt) => (
-                <button
-                  key={prompt}
-                  onClick={() => {
-                    setInput(prompt)
-                  }}
-                  className="text-xs text-stride-600 bg-stride-50 border border-stride-200 px-2.5 py-1 rounded-full whitespace-nowrap hover:bg-stride-100 transition-colors"
-                >
-                  {prompt}
+            <div className="px-4 pb-2 flex gap-2 overflow-x-auto flex-shrink-0 scrollbar-none">
+              {QUICK_PROMPTS.map((p) => (
+                <button key={p} onClick={() => sendMessage(p)}
+                  className="text-xs text-primary-600 dark:text-primary-400
+                             bg-primary-50 dark:bg-primary-900/20
+                             border border-primary-200 dark:border-primary-800/40
+                             px-3 py-1.5 rounded-full whitespace-nowrap
+                             hover:bg-primary-100 dark:hover:bg-primary-900/40
+                             transition-colors flex-shrink-0">
+                  {p}
                 </button>
               ))}
             </div>
 
-            <div className="p-4 border-t border-gray-100 flex-shrink-0">
+            {/* Input */}
+            <div className="px-4 pb-4 flex-shrink-0 pt-3"
+                 style={{ borderTop: '1px solid var(--c-border)' }}>
               <div className="flex gap-2">
-                <input
-                  className="input flex-1"
+                <input ref={inputRef} className="input flex-1 text-sm"
                   placeholder="Pergunte algo ao Stride AI..."
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                  disabled={isLoading}
-                />
-                <button
-                  onClick={sendMessage}
+                  disabled={isLoading} />
+                <button onClick={() => sendMessage()}
                   disabled={isLoading || !input.trim()}
-                  className="btn-primary p-2 aspect-square"
-                >
-                  <Send size={16} />
+                  className="btn-primary px-3 py-2.5 rounded-xl aspect-square">
+                  <Send size={15} />
                 </button>
               </div>
             </div>
           </>
         )}
 
-        {/* Analysis tab */}
+        {/* ── Analysis tab ── */}
         {activeTab === 'analysis' && (
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
             {!analysis ? (
-              <div className="flex flex-col items-center justify-center h-full text-center gap-3 text-gray-400">
-                <Sparkles size={32} className="text-stride-300" />
-                <p className="text-sm">
-                  Clique no botão <BarChart2 size={14} className="inline" /> no topo para analisar
-                  sua agenda de hoje.
-                </p>
+              <div className="flex flex-col items-center justify-center h-full text-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-primary-100 dark:bg-primary-900/30
+                                flex items-center justify-center">
+                  <Sparkles size={24} className="text-primary-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-surface-700 dark:text-surface-300">
+                    Analisar agenda de hoje
+                  </p>
+                  <p className="text-xs text-surface-400 dark:text-surface-500 mt-1">
+                    Clique no ícone <BarChart2 size={12} className="inline" /> no topo
+                  </p>
+                </div>
+                <button onClick={analyzeSchedule} disabled={isAnalyzing}
+                  className="btn-primary">
+                  {isAnalyzing ? 'Analisando...' : 'Analisar agora'}
+                </button>
               </div>
             ) : (
               <>
-                {/* Load indicator */}
-                <div className={`rounded-xl p-3 flex items-center gap-3 ${loadColor(analysis.estimatedLoadPercentage)}`}>
-                  <div className="text-2xl font-bold">{analysis.estimatedLoadPercentage}%</div>
-                  <div>
-                    <div className="text-sm font-medium">Carga do dia</div>
-                    <div className="text-xs opacity-75">
-                      {analysis.estimatedLoadPercentage > 80
-                        ? 'Dia muito carregado!'
-                        : analysis.estimatedLoadPercentage > 60
-                          ? 'Carga moderada'
-                          : 'Bem equilibrado'}
+                {/* Load gauge */}
+                <div className={`rounded-2xl p-4 bg-gradient-to-br ${loadGradient(analysis.estimatedLoadPercentage)}`}>
+                  <div className="flex items-center gap-3">
+                    <div className="text-3xl font-black text-white">
+                      {analysis.estimatedLoadPercentage}%
                     </div>
+                    <div>
+                      <div className="text-sm font-semibold text-white">
+                        {loadLabel(analysis.estimatedLoadPercentage)}
+                      </div>
+                      <div className="text-xs text-white/70">carga estimada do dia</div>
+                    </div>
+                  </div>
+                  <div className="mt-3 h-1.5 bg-white/30 rounded-full overflow-hidden">
+                    <div className="h-full bg-white/80 rounded-full transition-all"
+                      style={{ width: `${analysis.estimatedLoadPercentage}%` }} />
                   </div>
                 </div>
 
-                {/* Overall feedback */}
-                <div className="bg-stride-50 rounded-xl p-3">
-                  <p className="text-sm text-stride-800 leading-relaxed">
+                {/* Feedback */}
+                <div className="bg-primary-50 dark:bg-primary-900/20
+                                border border-primary-200/60 dark:border-primary-800/40
+                                rounded-2xl p-3.5">
+                  <p className="text-sm text-primary-800 dark:text-primary-200 leading-relaxed">
                     {analysis.overallFeedback}
                   </p>
                 </div>
 
                 {/* Missing essentials */}
                 {analysis.missingEssentials.length > 0 && (
-                  <div className="bg-orange-50 border border-orange-200 rounded-xl p-3">
-                    <h3 className="text-xs font-semibold text-orange-700 mb-2 uppercase tracking-wide">
-                      Essenciais faltando
+                  <div className="bg-amber-50 dark:bg-amber-900/20
+                                  border border-amber-200/60 dark:border-amber-800/40
+                                  rounded-2xl p-3.5">
+                    <h3 className="text-xs font-semibold text-amber-700 dark:text-amber-400
+                                   uppercase tracking-wide mb-2">
+                      ⚠ Essenciais faltando
                     </h3>
                     <div className="flex flex-wrap gap-1.5">
                       {analysis.missingEssentials.map((item) => (
-                        <span
-                          key={item}
-                          className="badge bg-orange-100 text-orange-700 text-xs"
-                        >
+                        <span key={item}
+                          className="badge bg-amber-100 dark:bg-amber-900/40
+                                     text-amber-700 dark:text-amber-400
+                                     border border-amber-200 dark:border-amber-800/40">
                           {item}
                         </span>
                       ))}
@@ -278,41 +318,37 @@ export function AIAssistant({ onClose }: AIAssistantProps) {
                 {/* Suggestions */}
                 {analysis.suggestions.length > 0 && (
                   <div className="space-y-2">
-                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Sugestões
-                    </h3>
+                    <h3 className="section-title">Sugestões</h3>
                     {analysis.suggestions.map((s, i) => (
-                      <div key={i} className="bg-white border border-gray-100 rounded-lg p-3">
-                        <div className="flex items-start gap-2">
-                          <span className="text-base">
-                            {s.type === 'break'
-                              ? '⏸️'
-                              : s.type === 'reminder'
-                                ? '🔔'
-                                : s.type === 'priority'
-                                  ? '🎯'
-                                  : s.type === 'schedule'
-                                    ? '📅'
-                                    : '🔀'}
-                          </span>
-                          <p className="text-sm text-gray-700 leading-relaxed">{s.message}</p>
-                        </div>
-                        {s.suggestedTime && (
-                          <p className="text-xs text-stride-600 mt-1 ml-7">
-                            Horário sugerido: {s.suggestedTime}
+                      <div key={i}
+                        className="bg-white dark:bg-surface-800
+                                   border border-surface-100 dark:border-surface-700
+                                   rounded-xl p-3 flex items-start gap-2.5">
+                        <span className="text-base flex-shrink-0">
+                          {s.type === 'break'    ? '⏸️'
+                          : s.type === 'reminder' ? '🔔'
+                          : s.type === 'priority' ? '🎯'
+                          : s.type === 'schedule' ? '📅'
+                          : '🔀'}
+                        </span>
+                        <div>
+                          <p className="text-sm text-surface-700 dark:text-surface-300 leading-relaxed">
+                            {s.message}
                           </p>
-                        )}
+                          {s.suggestedTime && (
+                            <p className="text-xs text-primary-600 dark:text-primary-400 mt-1 font-medium">
+                              Horário sugerido: {s.suggestedTime}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
                 )}
 
-                <button
-                  onClick={analyzeSchedule}
-                  disabled={isAnalyzing}
-                  className="btn-secondary w-full text-sm"
-                >
-                  {isAnalyzing ? 'Analisando...' : 'Reanalisar agenda'}
+                <button onClick={analyzeSchedule} disabled={isAnalyzing}
+                  className="btn-secondary w-full">
+                  {isAnalyzing ? 'Reanalisando…' : 'Reanalisar agenda'}
                 </button>
               </>
             )}

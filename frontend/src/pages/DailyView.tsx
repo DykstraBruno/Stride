@@ -1,177 +1,152 @@
 import { useState } from 'react'
-import { Plus, RefreshCw } from 'lucide-react'
+import { Plus, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useTasks } from '../hooks/useTasks'
 import { TaskCard } from '../components/TaskCard'
 import { TaskForm } from '../components/TaskForm'
 import { ChecklistProgress } from '../components/ChecklistProgress'
+import { DayTimeline } from '../components/DayTimeline'
 import { Task } from '../types/task'
-import { format, isToday, isTomorrow, isYesterday } from 'date-fns'
+import { format, isToday, isTomorrow, isYesterday, addDays, subDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 export function DailyView() {
   const [selectedDate, setSelectedDate] = useState(new Date())
-  const [showForm, setShowForm] = useState(false)
-  const [editingTask, setEditingTask] = useState<Task | undefined>()
+  const [showForm, setShowForm]         = useState(false)
+  const [editingTask, setEditingTask]   = useState<Task | undefined>()
   const { data: tasks = [], isLoading, refetch } = useTasks('daily', selectedDate)
 
-  const dateLabel = isToday(selectedDate)
-    ? 'Hoje'
-    : isTomorrow(selectedDate)
-      ? 'Amanhã'
-      : isYesterday(selectedDate)
-        ? 'Ontem'
-        : format(selectedDate, "EEEE, d 'de' MMMM", { locale: ptBR })
+  const dateLabel = isToday(selectedDate)     ? 'Hoje'
+                  : isTomorrow(selectedDate)  ? 'Amanhã'
+                  : isYesterday(selectedDate) ? 'Ontem'
+                  : format(selectedDate, "EEEE", { locale: ptBR })
 
-  const pendingTasks = tasks.filter((t) => t.status === 'pending' || t.status === 'in_progress')
-  const doneTasks = tasks.filter((t) => t.status === 'completed' || t.status === 'skipped')
-  const overdueTasks = tasks.filter((t) => t.status === 'overdue')
+  const dateSubLabel = format(selectedDate, "d 'de' MMMM 'de' yyyy", { locale: ptBR })
+
+  const overdue = tasks.filter((t) => t.status === 'overdue')
+  const active  = tasks.filter((t) => t.status === 'pending' || t.status === 'in_progress')
+  const done    = tasks.filter((t) => t.status === 'completed' || t.status === 'skipped')
+
+  const openEdit = (t: Task) => { setEditingTask(t); setShowForm(true) }
 
   return (
-    <div className="space-y-4">
-      {/* Date navigation */}
+    <div className="space-y-5 max-w-[928px]">
+
+      {/* ── Date header ── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 capitalize">{dateLabel}</h1>
-          <p className="text-xs text-gray-400">
-            {format(selectedDate, "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
+          <h1 className="text-2xl font-bold capitalize tracking-tight"
+              style={{ color: 'var(--c-text)' }}>
+            {dateLabel}
+          </h1>
+          <p className="text-sm capitalize mt-0.5" style={{ color: 'var(--c-muted)' }}>
+            {dateSubLabel}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() =>
-              setSelectedDate((d) => new Date(d.getTime() - 86400000))
-            }
-            className="btn-ghost px-2 py-1 text-sm"
-          >
-            ‹
+
+        <div className="flex items-center gap-0.5 rounded-lg p-1"
+             style={{ backgroundColor: 'var(--c-hover)', border: '1px solid var(--c-border)' }}>
+          <button onClick={() => setSelectedDate((d) => subDays(d, 1))} className="btn-icon w-7 h-7">
+            <ChevronLeft size={15} />
           </button>
-          <button
-            onClick={() => setSelectedDate(new Date())}
-            className="btn-ghost px-3 py-1 text-xs"
-          >
+          <button onClick={() => setSelectedDate(new Date())}
+            className="px-2.5 py-1 text-xs font-medium rounded-md transition-colors"
+            style={{
+              backgroundColor: isToday(selectedDate) ? 'var(--c-card)' : 'transparent',
+              color: isToday(selectedDate) ? 'var(--c-text)' : 'var(--c-muted)',
+            }}>
             Hoje
           </button>
-          <button
-            onClick={() =>
-              setSelectedDate((d) => new Date(d.getTime() + 86400000))
-            }
-            className="btn-ghost px-2 py-1 text-sm"
-          >
-            ›
+          <button onClick={() => setSelectedDate((d) => addDays(d, 1))} className="btn-icon w-7 h-7">
+            <ChevronRight size={15} />
           </button>
         </div>
       </div>
 
-      {/* Progress */}
+      {/* ── Progress ── */}
       {tasks.length > 0 && <ChecklistProgress tasks={tasks} />}
 
-      {/* Overdue */}
-      {overdueTasks.length > 0 && (
-        <section>
-          <h2 className="text-xs font-semibold text-red-500 uppercase tracking-wide mb-2">
-            ⚠ Atrasadas ({overdueTasks.length})
-          </h2>
-          <div className="space-y-2">
-            {overdueTasks.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                onEdit={(t) => {
-                  setEditingTask(t)
-                  setShowForm(true)
-                }}
-              />
-            ))}
+      {/* ── Overdue ── */}
+      {overdue.length > 0 && (
+        <section className="space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse-soft" />
+            <h2 className="section-title text-rose-500">Atrasadas ({overdue.length})</h2>
           </div>
+          {overdue.map((t) => <TaskCard key={t.id} task={t} onEdit={openEdit} />)}
         </section>
       )}
 
-      {/* Pending */}
-      <section>
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-            Tarefas ({pendingTasks.length})
-          </h2>
-          <button
-            onClick={() => refetch()}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
+      {/* ── Active tasks ── */}
+      <section className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary-500" />
+            <h2 className="section-title">
+              Tarefas{active.length > 0 ? ` (${active.length})` : ''}
+            </h2>
+          </div>
+          <button onClick={() => refetch()} className="btn-icon w-6 h-6">
             <RefreshCw size={12} />
           </button>
         </div>
 
         {isLoading ? (
           <div className="space-y-2">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="card animate-pulse h-16 bg-gray-50" />
-            ))}
+            {[1, 2, 3].map((i) => <div key={i} className="h-16 rounded-lg skeleton" />)}
           </div>
-        ) : pendingTasks.length === 0 && doneTasks.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
-            <p className="text-4xl mb-3">📋</p>
-            <p className="text-sm">Nenhuma tarefa para hoje.</p>
-            <p className="text-xs mt-1">Clique em + para adicionar.</p>
-          </div>
-        ) : (
+        ) : active.length === 0 && done.length === 0 ? (
+          <EmptyState />
+        ) : active.length === 0 ? null : (
           <div className="space-y-2">
-            {pendingTasks.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                onEdit={(t) => {
-                  setEditingTask(t)
-                  setShowForm(true)
-                }}
-              />
-            ))}
+            {active.map((t) => <TaskCard key={t.id} task={t} onEdit={openEdit} />)}
           </div>
         )}
       </section>
 
-      {/* Done */}
-      {doneTasks.length > 0 && (
-        <section>
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
-            Concluídas / Ignoradas ({doneTasks.length})
-          </h2>
+      {/* ── Done ── */}
+      {done.length > 0 && (
+        <section className="space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <h2 className="section-title text-emerald-500">Concluídas ({done.length})</h2>
+          </div>
           <div className="space-y-2">
-            {doneTasks.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                onEdit={(t) => {
-                  setEditingTask(t)
-                  setShowForm(true)
-                }}
-              />
-            ))}
+            {done.map((t) => <TaskCard key={t.id} task={t} onEdit={openEdit} />)}
           </div>
         </section>
       )}
 
-      {/* FAB */}
-      <button
-        onClick={() => {
-          setEditingTask(undefined)
-          setShowForm(true)
-        }}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-stride-600 text-white rounded-full shadow-lg
-                   flex items-center justify-center hover:bg-stride-700 active:bg-stride-800
-                   transition-colors focus:outline-none focus:ring-4 focus:ring-stride-300"
-      >
-        <Plus size={24} />
+      {/* ── FAB ── */}
+      <button onClick={() => { setEditingTask(undefined); setShowForm(true) }}
+        className="fixed bottom-6 right-6 w-14 h-14 rounded-xl
+                   bg-primary-500 hover:bg-primary-600 active:scale-95
+                   text-white shadow-lg shadow-primary-500/25
+                   flex items-center justify-center transition-all duration-150
+                   focus:outline-none focus:ring-2 focus:ring-primary-400">
+        <Plus size={22} strokeWidth={2.5} />
       </button>
 
       {showForm && (
-        <TaskForm
-          task={editingTask}
-          defaultPeriod="daily"
-          onClose={() => {
-            setShowForm(false)
-            setEditingTask(undefined)
-          }}
-        />
+        <TaskForm task={editingTask} defaultPeriod="daily"
+          onClose={() => { setShowForm(false); setEditingTask(undefined) }} />
       )}
+    </div>
+  )
+}
+
+function EmptyState() {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <div className="w-16 h-16 rounded-xl flex items-center justify-center mb-4 text-2xl"
+           style={{ backgroundColor: 'var(--c-hover)', border: '1px solid var(--c-border)' }}>
+        📋
+      </div>
+      <p className="text-sm font-medium" style={{ color: 'var(--c-soft)' }}>
+        Nenhuma tarefa para hoje
+      </p>
+      <p className="text-xs mt-1" style={{ color: 'var(--c-muted)' }}>
+        Clique em + para adicionar sua primeira tarefa
+      </p>
     </div>
   )
 }
