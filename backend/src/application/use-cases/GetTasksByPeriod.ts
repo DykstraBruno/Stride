@@ -11,8 +11,8 @@ const PRIORITY_ORDER: Record<TaskPriority, number> = {
 export class GetTasksByPeriod {
   constructor(private readonly taskRepository: ITaskRepository) {}
 
-  async execute(period: TaskPeriod, date: Date): Promise<Task[]> {
-    const tasks = await this.taskRepository.findByPeriod(period, date)
+  async execute(period: TaskPeriod, start: Date, end: Date): Promise<Task[]> {
+    const tasks = await this.taskRepository.findByPeriod(period, start, end)
 
     return tasks.sort((a, b) => {
       const priorityDiff = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]

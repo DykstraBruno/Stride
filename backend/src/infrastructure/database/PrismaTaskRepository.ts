@@ -31,15 +31,20 @@ export class PrismaTaskRepository implements ITaskRepository {
     return records.map(this.toDomain)
   }
 
-  async findByPeriod(period: TaskPeriod, date: Date): Promise<Task[]> {
-    const { start, end } = this.getPeriodRange(period, date)
-
+  async findByPeriod(period: TaskPeriod, start: Date, end: Date): Promise<Task[]> {
+    // A task belongs to a period based on when it STARTS (scheduledAt), not when
+    // it ends (dueDate). This correctly handles overnight tasks like sleep.
+    // start/end are UTC boundaries computed from the client's local timezone.
     const records = await this.prisma.task.findMany({
       where: {
         period,
-        dueDate: { gte: start, lte: end },
+        isRecurring: false,
+        OR: [
+          { scheduledAt: { gte: start, lte: end } },
+          { scheduledAt: null, dueDate: { gte: start, lte: end } },
+        ],
       },
-      orderBy: [{ priority: 'asc' }, { scheduledAt: 'asc' }],
+      orderBy: [{ scheduledAt: 'asc' }, { dueDate: 'asc' }],
     })
 
     return records.map(this.toDomain)
@@ -64,6 +69,12 @@ export class PrismaTaskRepository implements ITaskRepository {
     await this.prisma.task.delete({ where: { id } })
   }
 
+  async deleteByParentId(parentId: string): Promise<void> {
+    await this.prisma.task.deleteMany({
+      where: { recurringParentId: parentId, status: 'pending' },
+    })
+  }
+
   async existsById(id: string): Promise<boolean> {
     const count = await this.prisma.task.count({ where: { id } })
     return count > 0
@@ -86,6 +97,7 @@ export class PrismaTaskRepository implements ITaskRepository {
       recurringConfig: record.recurringConfig
         ? (JSON.parse(record.recurringConfig) as RecurringConfig)
         : undefined,
+      recurringParentId: record.recurringParentId ?? undefined,
       tags: JSON.parse(record.tags) as string[],
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
@@ -107,6 +119,7 @@ export class PrismaTaskRepository implements ITaskRepository {
       category: task.category,
       isRecurring: task.isRecurring,
       recurringConfig: task.recurringConfig ? JSON.stringify(task.recurringConfig) : null,
+      recurringParentId: task.recurringParentId ?? null,
       tags: JSON.stringify(task.tags),
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,

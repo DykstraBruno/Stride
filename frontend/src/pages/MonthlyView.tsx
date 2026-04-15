@@ -31,7 +31,8 @@ export function MonthlyView() {
   const monthEnd = endOfMonth(monthStart)
   const weeks    = eachWeekOfInterval({ start: monthStart, end: monthEnd }, { weekStartsOn: 0 })
 
-  const getTasksForDay   = (day: Date) => tasks.filter((t) => isSameDay(new Date(t.dueDate), day))
+  const getTasksForDay   = (day: Date) =>
+    tasks.filter((t) => isSameDay(new Date(t.scheduledAt ?? t.dueDate), day))
   const selectedDayTasks = selectedDay ? getTasksForDay(selectedDay) : []
 
   const openEdit = (t: Task) => { setEditingTask(t); setShowForm(true) }

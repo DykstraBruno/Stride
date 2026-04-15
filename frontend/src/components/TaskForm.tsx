@@ -22,7 +22,8 @@ export function TaskForm({ task, defaultPeriod = 'daily', onClose }: TaskFormPro
     description:      task?.description ?? '',
     period:           task?.period ?? defaultPeriod,
     priority:         task?.priority ?? ('medium' as TaskPriority),
-    timeLimitMinutes: task?.timeLimitMinutes ?? 30,
+    timeLimitHours:   task ? Math.floor(task.timeLimitMinutes / 60) : 0,
+    timeLimitMins:    task ? task.timeLimitMinutes % 60             : 30,
     scheduledAt:      task?.scheduledAt
       ? format(new Date(task.scheduledAt), "yyyy-MM-dd'T'HH:mm") : '',
     category:         task?.category ?? ('work' as TaskCategory),
@@ -46,6 +47,9 @@ export function TaskForm({ task, defaultPeriod = 'daily', onClose }: TaskFormPro
     e.preventDefault()
     setError('')
     if (!form.title.trim()) { setError('Título é obrigatório'); return }
+    if (form.timeLimitHours * 60 + form.timeLimitMins < 1) {
+      setError('Defina ao menos 1 minuto de duração'); return
+    }
     if (form.isRecurring && form.recurringDays.length === 0) {
       setError('Selecione ao menos um dia para a recorrência'); return
     }
@@ -55,7 +59,7 @@ export function TaskForm({ task, defaultPeriod = 'daily', onClose }: TaskFormPro
       description:      form.description || undefined,
       period:           form.period as TaskPeriod,
       priority:         form.priority,
-      timeLimitMinutes: Number(form.timeLimitMinutes),
+      timeLimitMinutes: form.timeLimitHours * 60 + form.timeLimitMins,
       scheduledAt:      form.scheduledAt ? new Date(form.scheduledAt).toISOString() : undefined,
       category:         form.category,
       isRecurring:      form.isRecurring,
@@ -159,31 +163,45 @@ export function TaskForm({ task, defaultPeriod = 'daily', onClose }: TaskFormPro
             </div>
           </div>
 
-          {/* Category + Time limit */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-surface-500 dark:text-surface-400">Categoria</label>
-              <select className="input"
-                value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value as TaskCategory })}>
-                <option value="work">💼 Trabalho</option>
-                <option value="personal">👤 Pessoal</option>
-                <option value="health">🏃 Saúde</option>
-                <option value="leisure">🎮 Lazer</option>
-                <option value="household">🏠 Casa</option>
-                <option value="food">🍽️ Alimentação</option>
-                <option value="hygiene">🚿 Higiene</option>
-                <option value="other">📌 Outro</option>
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-surface-500 dark:text-surface-400">
-                Tempo limite (min)
-              </label>
-              <input className="input" type="number" min={1} max={1440}
-                value={form.timeLimitMinutes}
-                onChange={(e) =>
-                  setForm({ ...form, timeLimitMinutes: parseInt(e.target.value) || 30 })} />
+          {/* Category */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-surface-500 dark:text-surface-400">Categoria</label>
+            <select className="input"
+              value={form.category}
+              onChange={(e) => setForm({ ...form, category: e.target.value as TaskCategory })}>
+              <option value="work">💼 Trabalho</option>
+              <option value="personal">👤 Pessoal</option>
+              <option value="health">🏃 Saúde</option>
+              <option value="leisure">🎮 Lazer</option>
+              <option value="household">🏠 Casa</option>
+              <option value="food">🍽️ Alimentação</option>
+              <option value="hygiene">🚿 Higiene</option>
+              <option value="other">📌 Outro</option>
+            </select>
+          </div>
+
+          {/* Duration */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-surface-500 dark:text-surface-400">
+              Duração
+            </label>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center flex-1 gap-1.5">
+                <input className="input text-center w-full" type="number" min={0} max={23}
+                  placeholder="0"
+                  value={form.timeLimitHours || ''}
+                  onChange={(e) =>
+                    setForm({ ...form, timeLimitHours: Math.min(23, Math.max(0, parseInt(e.target.value) || 0)) })} />
+                <span className="text-xs font-medium flex-shrink-0" style={{ color: 'var(--c-muted)' }}>h</span>
+              </div>
+              <div className="flex items-center flex-1 gap-1.5">
+                <input className="input text-center w-full" type="number" min={0} max={59}
+                  placeholder="0"
+                  value={form.timeLimitMins || ''}
+                  onChange={(e) =>
+                    setForm({ ...form, timeLimitMins: Math.min(59, Math.max(0, parseInt(e.target.value) || 0)) })} />
+                <span className="text-xs font-medium flex-shrink-0" style={{ color: 'var(--c-muted)' }}>min</span>
+              </div>
             </div>
           </div>
 

@@ -76,32 +76,35 @@ export function DailyView() {
         </section>
       )}
 
-      {/* ── Active tasks ── */}
-      <section className="space-y-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary-500" />
-            <h2 className="section-title">
-              Tarefas{active.length > 0 ? ` (${active.length})` : ''}
-            </h2>
-          </div>
-          <button onClick={() => refetch()} className="btn-icon w-6 h-6">
-            <RefreshCw size={12} />
-          </button>
-        </div>
+      {/* ── Day timeline ── */}
+      <DayTimeline tasks={tasks} date={selectedDate} />
 
-        {isLoading ? (
-          <div className="space-y-2">
-            {[1, 2, 3].map((i) => <div key={i} className="h-16 rounded-lg skeleton" />)}
+      {/* ── Active tasks ── */}
+      {(tasks.length > 0 || isLoading) && (
+        <section className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary-500" />
+              <h2 className="section-title">
+                Tarefas{active.length > 0 ? ` (${active.length})` : ''}
+              </h2>
+            </div>
+            <button onClick={() => refetch()} className="btn-icon w-6 h-6">
+              <RefreshCw size={12} />
+            </button>
           </div>
-        ) : active.length === 0 && done.length === 0 ? (
-          <EmptyState />
-        ) : active.length === 0 ? null : (
-          <div className="space-y-2">
-            {active.map((t) => <TaskCard key={t.id} task={t} onEdit={openEdit} />)}
-          </div>
-        )}
-      </section>
+
+          {isLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => <div key={i} className="h-16 rounded-lg skeleton" />)}
+            </div>
+          ) : active.length > 0 ? (
+            <div className="space-y-2">
+              {active.map((t) => <TaskCard key={t.id} task={t} onEdit={openEdit} />)}
+            </div>
+          ) : null}
+        </section>
+      )}
 
       {/* ── Done ── */}
       {done.length > 0 && (
@@ -134,19 +137,3 @@ export function DailyView() {
   )
 }
 
-function EmptyState() {
-  return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="w-16 h-16 rounded-xl flex items-center justify-center mb-4 text-2xl"
-           style={{ backgroundColor: 'var(--c-hover)', border: '1px solid var(--c-border)' }}>
-        📋
-      </div>
-      <p className="text-sm font-medium" style={{ color: 'var(--c-soft)' }}>
-        Nenhuma tarefa para hoje
-      </p>
-      <p className="text-xs mt-1" style={{ color: 'var(--c-muted)' }}>
-        Clique em + para adicionar sua primeira tarefa
-      </p>
-    </div>
-  )
-}

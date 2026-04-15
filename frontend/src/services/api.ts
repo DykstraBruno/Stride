@@ -24,7 +24,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 // Tasks API
 export const tasksApi = {
-  getAll: (params?: { period?: TaskPeriod; date?: string; status?: string }) => {
+  getAll: (params?: { period?: TaskPeriod; date?: string; dateFrom?: string; dateTo?: string; status?: string }) => {
     const qs = params
       ? '?' + new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined) as [string, string][]).toString()
       : ''

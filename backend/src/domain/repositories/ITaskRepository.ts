@@ -12,9 +12,10 @@ export interface FindTasksFilter {
 export interface ITaskRepository {
   findById(id: string): Promise<Task | null>
   findAll(filter?: FindTasksFilter): Promise<Task[]>
-  findByPeriod(period: TaskPeriod, date: Date): Promise<Task[]>
+  findByPeriod(period: TaskPeriod, start: Date, end: Date): Promise<Task[]>
   save(task: Task): Promise<Task>
   update(task: Task): Promise<Task>
   delete(id: string): Promise<void>
+  deleteByParentId(parentId: string): Promise<void>
   existsById(id: string): Promise<boolean>
 }

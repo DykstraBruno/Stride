@@ -1,5 +1,6 @@
 import { Task, TaskPeriod, TaskPriority, TaskCategory, RecurringConfig } from '../../domain/entities/Task'
 import { ITaskRepository } from '../../domain/repositories/ITaskRepository'
+import { GenerateRecurringInstances } from './GenerateRecurringInstances'
 
 export interface CreateTaskInput {
   title: string
@@ -36,6 +37,12 @@ export class CreateTask {
       tags: input.tags,
     })
 
-    return this.taskRepository.save(task)
+    const saved = await this.taskRepository.save(task)
+
+    if (saved.isRecurring) {
+      await new GenerateRecurringInstances(this.taskRepository).execute(saved)
+    }
+
+    return saved
   }
 }

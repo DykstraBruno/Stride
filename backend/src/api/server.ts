@@ -22,7 +22,7 @@ async function main() {
   const app = createApp(taskRepository, aiService)
 
   app.listen(PORT, () => {
-    console.log(`🚀 Stride API running on http://localhost:${PORT} — schema v2`)
+    console.log(`🚀 Stride API running on http://localhost:${PORT} — schema v3 (tz-safe)`)
     console.log(`🤖 AI: Groq — model: ${GROQ_MODEL}`)
     console.log(`📊 Health check: http://localhost:${PORT}/health`)
   })

@@ -1,5 +1,6 @@
 import { Task, TaskPeriod, TaskPriority, TaskCategory, RecurringConfig } from '../../domain/entities/Task'
 import { ITaskRepository } from '../../domain/repositories/ITaskRepository'
+import { GenerateRecurringInstances } from './GenerateRecurringInstances'
 
 export interface UpdateTaskInput {
   title?: string
@@ -46,6 +47,16 @@ export class UpdateTask {
 
     task.updatedAt = new Date()
 
-    return this.taskRepository.update(task)
+    const updated = await this.taskRepository.update(task)
+
+    // Regenerate instances if this is a recurring template and config changed
+    if (updated.isRecurring &&
+        (input.recurringConfig !== undefined ||
+         input.scheduledAt !== undefined ||
+         input.timeLimitMinutes !== undefined)) {
+      await new GenerateRecurringInstances(this.taskRepository).execute(updated)
+    }
+
+    return updated
   }
 }

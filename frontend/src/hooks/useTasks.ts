@@ -1,14 +1,33 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { tasksApi } from '../services/api'
 import { TaskPeriod, CreateTaskPayload, UpdateTaskPayload } from '../types/task'
-import { format } from 'date-fns'
+import {
+  startOfDay, endOfDay,
+  startOfWeek, endOfWeek,
+  startOfMonth, endOfMonth,
+} from 'date-fns'
+
+function getPeriodBounds(period: TaskPeriod, date: Date): { dateFrom: string; dateTo: string } {
+  let from: Date, to: Date
+  if (period === 'daily') {
+    from = startOfDay(date)
+    to   = endOfDay(date)
+  } else if (period === 'weekly') {
+    from = startOfWeek(date, { weekStartsOn: 0 })
+    to   = endOfWeek(date,   { weekStartsOn: 0 })
+  } else {
+    from = startOfMonth(date)
+    to   = endOfMonth(date)
+  }
+  return { dateFrom: from.toISOString(), dateTo: to.toISOString() }
+}
 
 export function useTasks(period?: TaskPeriod, date?: Date) {
-  const dateStr = date ? format(date, "yyyy-MM-dd'T'HH:mm:ss") : undefined
+  const bounds = period && date ? getPeriodBounds(period, date) : undefined
 
   return useQuery({
-    queryKey: ['tasks', period, dateStr],
-    queryFn: () => tasksApi.getAll({ period, date: dateStr }),
+    queryKey: ['tasks', period, bounds?.dateFrom],
+    queryFn: () => tasksApi.getAll({ period, ...bounds }),
   })
 }
 

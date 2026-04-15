@@ -22,8 +22,9 @@ model Task {
   completedAt      DateTime?
   status           String    @default("pending")
   category         String
-  isRecurring      Boolean   @default(false)
-  recurringConfig  String?   // JSON string
+  isRecurring        Boolean   @default(false)
+  recurringConfig    String?   // JSON string
+  recurringParentId  String?   // set on instances; null on templates and regular tasks
   tags             String    @default("[]") // JSON array string
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt

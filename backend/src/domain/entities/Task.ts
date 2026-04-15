@@ -34,6 +34,7 @@ export interface TaskProps {
   category: TaskCategory
   isRecurring?: boolean
   recurringConfig?: RecurringConfig
+  recurringParentId?: string
   tags?: string[]
   createdAt?: Date
   updatedAt?: Date
@@ -53,6 +54,7 @@ export class Task {
   category: TaskCategory
   isRecurring: boolean
   recurringConfig: RecurringConfig | undefined
+  recurringParentId: string | undefined
   tags: string[]
   readonly createdAt: Date
   updatedAt: Date
@@ -75,6 +77,7 @@ export class Task {
     this.category = props.category
     this.isRecurring = props.isRecurring ?? false
     this.recurringConfig = props.recurringConfig
+    this.recurringParentId = props.recurringParentId
     this.tags = props.tags ?? []
     this.createdAt = props.createdAt ?? new Date()
     this.updatedAt = props.updatedAt ?? new Date()
@@ -159,6 +162,7 @@ export class Task {
       category: this.category,
       isRecurring: this.isRecurring,
       recurringConfig: this.recurringConfig,
+      recurringParentId: this.recurringParentId,
       tags: this.tags,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,

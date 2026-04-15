@@ -23,7 +23,8 @@ export function WeeklyView() {
   const days      = eachDayOfInterval({ start: weekStart, end: weekEnd })
   const weekLabel = `${format(weekStart, "d 'de' MMM", { locale: ptBR })} – ${format(weekEnd, "d 'de' MMM", { locale: ptBR })}`
 
-  const getTasksForDay = (day: Date) => tasks.filter((t) => isSameDay(new Date(t.dueDate), day))
+  const getTasksForDay = (day: Date) =>
+    tasks.filter((t) => isSameDay(new Date(t.scheduledAt ?? t.dueDate), day))
 
   const grouped = tasks.reduce((acc, t) => {
     if (!acc[t.category]) acc[t.category] = []

@@ -17,9 +17,13 @@ export function createTasksRouter(taskRepository: ITaskRepository): Router {
     try {
       const query = filterTasksSchema.parse(req.query)
 
-      if (query.period && query.date) {
+      if (query.period && query.dateFrom && query.dateTo) {
         const getByPeriod = new GetTasksByPeriod(taskRepository)
-        const tasks = await getByPeriod.execute(query.period as TaskPeriod, new Date(query.date))
+        const tasks = await getByPeriod.execute(
+          query.period as TaskPeriod,
+          new Date(query.dateFrom),
+          new Date(query.dateTo),
+        )
         return res.json(tasks.map((t) => t.toPlainObject()))
       }
 
